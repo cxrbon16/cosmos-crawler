@@ -126,6 +126,3 @@ def fetch_keyword(logger):
         # Bu hata, dosya var ama içi tamamen boşsa oluşur
         print(f"Keyword file '{keyword_file_path}' seems to be empty or malformed.")
         return None
-
-
-

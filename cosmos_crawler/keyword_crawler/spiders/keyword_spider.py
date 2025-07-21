@@ -20,6 +20,7 @@ turkish_stop_words = config.TURKISH_STOPWORDS
 class KeywordCrawlerSpider(scrapy.Spider):
     name = "keyword_crawler"
     refresh_step = config.REFRESH_STEP
+    max_depth = config.MAX_DEPTH
     curr_w_keyword = 0
     allowed_domains = []
     start_urls = []
@@ -61,7 +62,7 @@ class KeywordCrawlerSpider(scrapy.Spider):
         self.url_list, self.corpus = file_handler.save_corpus(url_list=self.url_list, corpus_list=self.corpus, logger=self.logger)
 
         for url in new_urls:
-            yield scrapy.Request(url, callback=self.parse, errback=self.err_back)
+            yield scrapy.Request(url, callback=self.parse, errback=self.err_back, meta={"depth": 0})
 
     def parse(self, response, **kwargs):
         self.curr_pagenumber += 1
@@ -104,10 +105,15 @@ class KeywordCrawlerSpider(scrapy.Spider):
         links = list(self.extract_links(html, response.url))
         for link in links:
             curr_in_p = self.crawler.engine.slot.scheduler.__len__() + len(self.crawler.engine.slot.inprogress)
+            current_depth = response.meta.get('depth', 0)
 
-            if link not in self.visited_urls and not utils.is_blacklisted_url(
-                    link) and curr_in_p < self.refresh_step - self.curr_w_keyword + 1:
-                yield scrapy.Request(link, callback=self.parse, errback=self.err_back)
+            is_link_visited = link in self.visited_urls
+            is_url_blacklisted = utils.is_blacklisted_url(link)
+            is_out_of_bound = curr_in_p > self.refresh_step - self.curr_w_keyword + 1
+            is_max_depth_exceeded = current_depth > self.max_depth
+
+            if not is_link_visited and not is_url_blacklisted and not is_out_of_bound and not is_max_depth_exceeded:
+                yield scrapy.Request(link, callback=self.parse, errback=self.err_back, meta={"depth": current_depth + 1})
 
         self.logger.info(
             f"{self.crawler.engine.slot.scheduler.__len__() + len(self.crawler.engine.slot.inprogress)}")

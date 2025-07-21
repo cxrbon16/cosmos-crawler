@@ -7,4 +7,6 @@ CORPUS_DIRECTORY = "CORPUS"
 TURKISH_STOPWORDS = ["bir", "ve", "ile", "olarak", "için", "gibi", "bu", "şu", "de", "da", "ama", "ancak", "fakat"]
 BLACKLISTED_EXTENSIONS = [".pdf", ".php", ".aspx", ".jsp", ".doc", ".docx", ".xlsx", ".jpg", ".jpeg", ".png"]  # İstenmeyen uzantılar
 
+MAX_DEPTH = 3
+
 LOG_FILEPATH = "keyword_crawler.log"
