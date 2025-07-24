@@ -61,13 +61,13 @@ def decode_bing_redirect(url):
 def bing_search_urls(keyword, max_results=10):
     print(f"keyword: {keyword}")
     options = uc.ChromeOptions()
-    options.headless = False
+    options.headless = config.HEADLESS
     driver = uc.Chrome(options=options)
 
     url = f"https://www.bing.com/search?q={keyword}&setlang=tr"
     print(url)
     driver.get(url)
-    time.sleep(2)
+    time.sleep(config.SELENIUM_WAIT_TIME)
     links = []
     elements = driver.find_elements(By.CSS_SELECTOR, "li.b_algo h2 a")
     for elem in elements[:max_results]:

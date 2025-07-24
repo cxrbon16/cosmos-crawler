@@ -4,7 +4,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import scrapy
 import logging
-import pandas as pd
+from scrapy_redis.spiders import RedisSpider
 import langid
 import re
 from bs4 import BeautifulSoup
@@ -17,7 +17,7 @@ import file_handler
 
 turkish_stop_words = config.TURKISH_STOPWORDS
 
-class KeywordCrawlerSpider(scrapy.Spider):
+class KeywordCrawlerSpider(RedisSpider):
     name = "keyword_crawler"
     refresh_step = config.REFRESH_STEP
     max_depth = config.MAX_DEPTH
@@ -32,6 +32,7 @@ class KeywordCrawlerSpider(scrapy.Spider):
     curr_pagenumber = 0
     curr_charactersnumber = 0
     start_time = time.time()
+    redis_key = "keyword_crawler:start_urls"
 
     # Loglama ayarları
     logging.basicConfig(
@@ -42,6 +43,7 @@ class KeywordCrawlerSpider(scrapy.Spider):
 
     def __init__(self, keyword=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        return
         self.visited_urls = file_handler.load_visited_urls(self.logger)
         self.start_urls = utils.bing_search_urls(keyword)
         self.logger.info(f"Starting URLs: {self.start_urls}")
@@ -65,6 +67,8 @@ class KeywordCrawlerSpider(scrapy.Spider):
             yield scrapy.Request(url, callback=self.parse, errback=self.err_back, meta={"depth": 0})
 
     def parse(self, response, **kwargs):
+        self.logger.info(f"Visited: {response.url}")
+        return
         self.curr_pagenumber += 1
         self.curr_w_keyword += 1
 

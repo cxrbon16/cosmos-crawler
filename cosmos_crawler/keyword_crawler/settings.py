@@ -97,3 +97,32 @@ DOWNLOAD_TIMEOUT = 2
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
 TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 FEED_EXPORT_ENCODING = "utf-8"
+
+
+# ========== scrapy-redis CONFIGURATION ==========
+
+# Redis tabanlı scheduler kullan
+SCHEDULER = "scrapy_redis.scheduler.Scheduler"
+
+# Aynı URL'leri tekrar ziyaret etmemek için Redis tabanlı dupefilter
+DUPEFILTER_CLASS = "scrapy_redis.dupefilter.RFPDupeFilter"
+
+# Spider kapandığında scheduler'ı (kuyruğu) sakla
+SCHEDULER_PERSIST = True
+
+# Kuyruğa eklenme önceliği (default FIFO)
+# Diğer seçenekler: scrapy_redis.queue.PriorityQueue (öncelik sırasına göre)
+SCHEDULER_QUEUE_CLASS = "scrapy_redis.queue.FifoQueue"
+
+# Redis bağlantı bilgileri
+REDIS_HOST = 'localhost'
+REDIS_PORT = 6379
+
+# Eğer Redis şifreliyse (şifre eklenmeli)
+# REDIS_PARAMS = {'password': 'yourpassword'}
+
+# Scrapy ayarları
+CONCURRENT_REQUESTS = 32
+DOWNLOAD_DELAY = 0.0  # Sunucuları yormamak için küçük bir bekleme
+ROBOTSTXT_OBEY = False
+

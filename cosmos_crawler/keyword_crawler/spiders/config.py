@@ -10,3 +10,6 @@ BLACKLISTED_EXTENSIONS = [".pdf", ".php", ".aspx", ".jsp", ".doc", ".docx", ".xl
 MAX_DEPTH = 3
 
 LOG_FILEPATH = "keyword_crawler.log"
+
+HEADLESS = True 
+SELENIUM_WAIT_TIME = 2
