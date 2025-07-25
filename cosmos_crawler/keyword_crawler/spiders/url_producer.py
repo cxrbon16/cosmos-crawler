@@ -4,6 +4,9 @@ import utils  # Bing search fonksiyonun burada
 import file_handler  # Keyword çekmek için burada olduğunu varsayıyorum
 import config
 
+SEED_KEY_QUEUE = "seed:keywords"          # anahtar‑sözcük listesi
+SEED_URLS_PREFIX  = "seed:urls"         # her keyword için URL listesi
+
 def push_keyword_and_urls(r, keyword, urls):
 
     if len(urls) < config.LEN_START_URLS:
@@ -14,10 +17,9 @@ def push_keyword_and_urls(r, keyword, urls):
         urls = urls[:config.LEN_START_URLS]
 
     pipe = r.pipeline()
-
-    pipe.lpush("keyword_crawler:keywords", keyword)
+    pipe.lpush(SEED_KEY_QUEUE, keyword)
     for url in urls:
-        pipe.lpush(f"keyword_crawler:urls:{keyword}", url)
+        pipe.lpush(SEED_URLS_PREFIX + f":{keyword}", url)
 
     pipe.execute()
     print(f"[✓] {keyword} ve {config.LEN_START_URLS} URL Redis'e eklendi.")

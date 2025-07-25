@@ -8,6 +8,23 @@
 
 BOT_NAME = "keyword_crawler"
 
+# ------------------ REDIS entegrasyonu ------------------
+REDIS_URL = "redis://localhost:6379"
+
+DUPEFILTER_CLASS   = "scrapy_redis.dupefilter.RFPDupeFilter"
+SCHEDULER          = "scrapy_redis.scheduler.Scheduler"
+SCHEDULER_PERSIST  = True   # spider durup kalksa da queue korunur
+
+# Kuyruk türü: varsayılan öncelikli sıra
+SCHEDULER_QUEUE_CLASS = "scrapy_redis.queue.SpiderPriorityQueue"
+
+# ------------------ Faydalı ince ayar ------------------
+DOWNLOAD_TIMEOUT = 15       # mevcutta 15 saniye iyi gidiyor
+RETRY_TIMES      = 2        # timeout/DNS hataları için tekrar dene
+# Concurrency & timeout ayarlarınızı güncelleyin
+DOWNLOAD_TIMEOUT = 15
+RETRY_TIMES      = 2
+
 SPIDER_MODULES = ["keyword_crawler.spiders"]
 NEWSPIDER_MODULE = "keyword_crawler.spiders"
 SCHEDULER_PRIORITY_QUEUE = "scrapy.pqueues.DownloaderAwarePriorityQueue"

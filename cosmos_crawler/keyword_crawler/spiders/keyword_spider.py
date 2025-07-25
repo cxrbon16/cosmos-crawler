@@ -1,5 +1,8 @@
 import sys
 import os
+
+from cosmos_crawler.keyword_crawler.spiders.url_producer import SEED_KEY_QUEUE
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import scrapy
@@ -17,6 +20,9 @@ import utils
 import file_handler
 
 turkish_stop_words = config.TURKISH_STOPWORDS
+
+SEED_KEY_QUEUE = "seed:keywords"
+SEED_URL_PREFIX = "seed:urls"
 
 class KeywordCrawlerSpider(scrapy.Spider):
     name = "keyword_crawler"
@@ -58,10 +64,13 @@ class KeywordCrawlerSpider(scrapy.Spider):
     def _handle_keyword_refresh(self):
         self.curr_w_keyword = 0
 
-        keyword = self.redis.rpop("keyword_crawler:keywords")
-        new_urls = self.redis.lrange(f"keyword_crawler:urls:{keyword}", 0, -1)
+        keyword = self.redis.rpop(SEED_KEY_QUEUE)
+        if not keyword:
+            self.logger.warning("Redis'te seed keyword kalmadı!")
 
+        new_urls = self.redis.lrange(f"{SEED_URL_PREFIX}:{keyword}", 0, -1)
         self.curr_keyword = keyword
+
         file_handler.save_visited_urls(urls_set=self.visited_urls, logger=self.logger)
         self.url_list, self.corpus = file_handler.save_corpus(url_list=self.url_list, corpus_list=self.corpus, logger=self.logger)
 
