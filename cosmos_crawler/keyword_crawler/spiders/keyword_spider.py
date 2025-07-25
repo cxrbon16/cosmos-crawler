@@ -3,6 +3,7 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import scrapy
+import redis
 import logging
 import pandas as pd
 import langid
@@ -21,17 +22,23 @@ class KeywordCrawlerSpider(scrapy.Spider):
     name = "keyword_crawler"
     refresh_step = config.REFRESH_STEP
     max_depth = config.MAX_DEPTH
+    len_start_urls = config.LEN_START_URLS
+
     curr_w_keyword = 0
-    allowed_domains = []
-    start_urls = []
     visited_urls = set()
     visited_urls_file = config.VISITED_URLS_FILEPATH
     keyword_file_path = config.KEYWORD_FILEPATH
+
     corpus = []  # Metinlerin tutulduğu liste
     url_list = []  # URL'lerin tutulduğu liste
+
     curr_pagenumber = 0
     curr_charactersnumber = 0
+
+    curr_keyword = ""
     start_time = time.time()
+
+    redis = redis.Redis(host='localhost', port=6379, decode_responses=True)
 
     # Loglama ayarları
     logging.basicConfig(
@@ -43,28 +50,34 @@ class KeywordCrawlerSpider(scrapy.Spider):
     def __init__(self, keyword=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.visited_urls = file_handler.load_visited_urls(self.logger)
-        self.start_urls = utils.bing_search_urls(keyword)
-        self.logger.info(f"Starting URLs: {self.start_urls}")
 
+    def start_requests(self):
+        self.logger.info("Spider başlatıldı, ilk keyword alınıyor...")
+        yield from self._handle_keyword_refresh()
 
     def _handle_keyword_refresh(self):
         self.curr_w_keyword = 0
-        self.logger.info(f"Starting to extract keyword...")
-        new_urls = []
 
-        while not new_urls:
-            time.sleep(0.5)
-            keyword = file_handler.fetch_keyword(self.logger)
-            new_urls = utils.bing_search_urls(keyword)
-            # Save progress before starting new requests
+        keyword = self.redis.rpop("keyword_crawler:keywords")
+        new_urls = self.redis.lrange(f"keyword_crawler:urls:{keyword}", 0, -1)
 
+        self.curr_keyword = keyword
         file_handler.save_visited_urls(urls_set=self.visited_urls, logger=self.logger)
         self.url_list, self.corpus = file_handler.save_corpus(url_list=self.url_list, corpus_list=self.corpus, logger=self.logger)
 
+        self.logger.info(f"NEW URLS \n {new_urls}")
+        if len(new_urls) < self.len_start_urls:
+            self.logger.warning(f"{keyword} için yeterli URL yok: {len(new_urls)} adet.")
+            return
+
         for url in new_urls:
-            yield scrapy.Request(url, callback=self.parse, errback=self.err_back, meta={"depth": 0})
+            yield scrapy.Request(url, callback=self.parse, errback=self.err_back, meta={"depth": 0, "keyword": keyword})
 
     def parse(self, response, **kwargs):
+        if response.meta.get("keyword") != self.curr_keyword:
+            self.logger.info(f"Skip old keyword URL: {response.url}")
+            return  # 🔒 Eski keyword'e aitse işlemeden çık
+
         self.curr_pagenumber += 1
         self.curr_w_keyword += 1
 
@@ -85,6 +98,7 @@ class KeywordCrawlerSpider(scrapy.Spider):
         lang, confidence = langid.classify(combined_text)
 
         if lang != "tr":
+            self.curr_w_keyword = max(self.curr_w_keyword - 1, 0)
             self.logger.info(f"Sayfa Türkçe değil: {response.url} (Dil: {lang}, Güven: {confidence:.2f})")
             return
 
@@ -96,12 +110,14 @@ class KeywordCrawlerSpider(scrapy.Spider):
         self.url_list.extend([response.url] * len(text))
         self.corpus.extend(text)
 
+        self.logger.info(f"KEYWORD: {response.meta['keyword']}")
         self.logger.info(f"Scraped Page {response.url}")
         self.logger.info(f"Total Pages Scraped: {self.curr_pagenumber}")
         self.logger.info(f"Total Characters Scraped: {self.curr_charactersnumber}")
         self.logger.info(f"Estimated Size: {estimated_size_gb:.2f} GB")
         self.logger.info(f"Time Consumed: {time_consumed} seconds")
 
+        t = 0
         links = list(self.extract_links(html, response.url))
         for link in links:
             curr_in_p = self.crawler.engine.slot.scheduler.__len__() + len(self.crawler.engine.slot.inprogress)
@@ -113,16 +129,27 @@ class KeywordCrawlerSpider(scrapy.Spider):
             is_max_depth_exceeded = current_depth > self.max_depth
 
             if not is_link_visited and not is_url_blacklisted and not is_out_of_bound and not is_max_depth_exceeded:
-                yield scrapy.Request(link, callback=self.parse, errback=self.err_back, meta={"depth": current_depth + 1})
+                t += 1
+                yield scrapy.Request(link, callback=self.parse, errback=self.err_back, meta={"depth": current_depth + 1, "keyword": response.meta.get("keyword")})
 
         self.logger.info(
-            f"{self.crawler.engine.slot.scheduler.__len__() + len(self.crawler.engine.slot.inprogress)}")
-
+            f"QUEUE SIZE: {self.crawler.engine.slot.scheduler.__len__() + len(self.crawler.engine.slot.inprogress)}")
+        self.logger.info(f"T: {t}")
     def err_back(self, failure):
-        self.curr_pagenumber += 1
-        self.curr_w_keyword += 1
-
+        self.curr_w_keyword = max(self.curr_w_keyword - 1, 0)
         self.logger.error(repr(failure))
+
+        # Başarısız istek, geçerli keyword kotasından düşsün
+        self.curr_w_keyword = max(self.curr_w_keyword - 1, 0)
+
+        # KAPANIŞ sürecindeysek slot None olabilir
+        slot = getattr(self.crawler.engine, "slot", None)
+        if not slot:
+            return
+
+        # Buradan sonrası yalnızca izleme amaçlı (refresh KALDIRILDI)
+        curr_in_p = len(slot.scheduler) + len(slot.inprogress)
+        self.logger.debug(f"Errback → queue size: {curr_in_p}")
         return
 
     def extract_text(self, html):

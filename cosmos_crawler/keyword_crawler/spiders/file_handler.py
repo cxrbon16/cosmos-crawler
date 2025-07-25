@@ -101,7 +101,7 @@ def save_visited_urls(urls_set, logger):
         logger.error(f"Could not save visited URLs to {file_path}: {e}")
 
 
-def fetch_keyword(logger):
+def fetch_keyword():
     keyword_file_path = config.KEYWORD_FILEPATH
     try:
         df = pd.read_csv(keyword_file_path)

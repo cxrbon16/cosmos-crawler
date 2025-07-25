@@ -27,8 +27,9 @@ COOKIES_ENABLED = False
 RETRY_ENABLED = False
 REDIRECT_ENABLED = False
 AJAXCRAWL_ENABLED = True
-DNS_TIMEOUT = 1
-DOWNLOAD_TIMEOUT = 2
+RETRY_TIMES = 2
+DNS_TIMEOUT = 3
+DOWNLOAD_TIMEOUT = 15
 # Configure a delay for requests for the same website (default: 0)
 # See https://docs.scrapy.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
@@ -97,3 +98,6 @@ DOWNLOAD_TIMEOUT = 2
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
 TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 FEED_EXPORT_ENCODING = "utf-8"
+
+HTTPERROR_ALLOWED_CODES = [301, 302, 307, 403, 404]
+REDIRECT_ENABLED = True         # 301–302 ise otomatik takip et

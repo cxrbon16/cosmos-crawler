@@ -3,7 +3,7 @@ import subprocess
 import pandas as pd
 import os
 
-keyword_file_path = "fixed_combined_data.csv"
+keyword_file_path = "keyword_crawler/spiders/fixed_combined_data.csv"
 CRAWLER_NAME = "keyword_crawler"
 
 def get_and_remove_next_keyword(filepath):

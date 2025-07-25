@@ -60,11 +60,14 @@ def decode_bing_redirect(url):
 
 def bing_search_urls(keyword, max_results=10):
     print(f"keyword: {keyword}")
+    ### options
     options = uc.ChromeOptions()
-    options.headless = False
+    options.add_argument("--lang=tr-TR,tr;q=0.9,en;q=0.8")
+    ###
+
     driver = uc.Chrome(options=options)
 
-    url = f"https://www.bing.com/search?q={keyword}&setlang=tr"
+    url = f"https://www.bing.com/search?q={keyword}"
     print(url)
     driver.get(url)
     time.sleep(2)

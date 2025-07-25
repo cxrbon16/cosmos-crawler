@@ -1,4 +1,5 @@
-REFRESH_STEP = 1000
+REFRESH_STEP = 500
+LEN_START_URLS = 10
 
 VISITED_URLS_FILEPATH = "visited_urls.csv"
 KEYWORD_FILEPATH = "fixed_combined_data.csv"
@@ -9,4 +10,5 @@ BLACKLISTED_EXTENSIONS = [".pdf", ".php", ".aspx", ".jsp", ".doc", ".docx", ".xl
 
 MAX_DEPTH = 3
 
+HEADLESS = False
 LOG_FILEPATH = "keyword_crawler.log"
