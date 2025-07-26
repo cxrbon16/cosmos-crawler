@@ -81,10 +81,6 @@ class KeywordCrawlerSpider(scrapy.Spider):
         self.curr_pagenumber += 1
         self.curr_w_keyword += 1
 
-        curr_in_p = self.crawler.engine.slot.scheduler.__len__() + len(self.crawler.engine.slot.inprogress)
-        if (self.curr_pagenumber + 1) % self.refresh_step == 0 or curr_in_p < 5:
-            yield from self._handle_keyword_refresh()
-            return
 
         try:
             self.visited_urls.add(response.url)
@@ -135,6 +131,7 @@ class KeywordCrawlerSpider(scrapy.Spider):
         self.logger.info(
             f"QUEUE SIZE: {self.crawler.engine.slot.scheduler.__len__() + len(self.crawler.engine.slot.inprogress)}")
         self.logger.info(f"T: {t}")
+
     def err_back(self, failure):
         self.curr_w_keyword = max(self.curr_w_keyword - 1, 0)
         self.logger.error(repr(failure))
