@@ -71,11 +71,11 @@ def bing_search_urls(keyword):
     driver = uc.Chrome(options=options)
 
     # çok genel sorgulara otomatik site:tr ekle
-    query = keyword
+    query = "'" + keyword + "'"
 
     # Bing URL: TR dili, TR pazarı, güvenli arama, Türkçe filtre
     url = (
-        f"https://www.bing.com/search?q={query}&setlang=tr"
+        f"https://www.bing.com/search?q={keyword}+&form=QBLH&sp=-1&ghc=1&lq=0&pq=selam+&sc=12-6&qs=n&sk=&cvid=96BEB3ECC0FC4E8DAB8214F58F63AF6C"
     )
     print(url)
     driver.get(url)
