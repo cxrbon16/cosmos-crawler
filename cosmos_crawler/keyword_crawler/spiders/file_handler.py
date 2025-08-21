@@ -29,11 +29,11 @@ def save_corpus(url_list, corpus_list, keyword, logger):
             writer = csv.writer(f)
 
             if os.path.getsize(filename) == 0:  # Dosya boşsa, başlık yazalım.
-                writer.writerow(["url", "text"])
+                writer.writerow(["keyword", "url", "text"])
 
             fcntl.flock(f, fcntl.LOCK_EX)
             for url, text in zip(url_list, corpus_list):
-                writer.writerow([url, text])
+                writer.writerow([keyword, url, text])
             fcntl.flock(f, fcntl.LOCK_UN)
         logger.info(f"Corpus saved to {filename}")
 
