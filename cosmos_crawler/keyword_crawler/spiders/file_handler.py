@@ -42,64 +42,78 @@ def save_corpus(url_list, corpus_list, keyword, logger):
 
     return [], []
 
-
 def load_visited_urls(logger):
     """
-    Loads visited URLs from a CSV file into a set using a shared lock.
-    A shared lock allows multiple processes to read the file simultaneously.
+    Atomik yazma ile değiştirilen dosyayı güvenle okur.
+    Shared lock (LOCK_SH) kullanır.
     """
     file_path = config.VISITED_URLS_FILEPATH
     visited = set()
 
-    if os.path.exists(file_path):
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                try:
-                    # PAYLAŞIMLI KİLİT AL (Diğer okuyucular erişebilir, yazarlar bekler)
-                    fcntl.flock(f, fcntl.LOCK_SH)
+    if not os.path.exists(file_path):
+        return visited
 
-                    # Dosyanın boş olup olmadığını kontrol et
-                    if os.path.getsize(file_path) > 0:
-                        reader = csv.reader(f)
-                        visited = {row[0] for row in reader if row}
-
-                finally:
-                    # KİLİDİ BIRAK
-                    fcntl.flock(f, fcntl.LOCK_UN)
-                    logger.info(f"Loaded {len(visited)} visited URLs from {file_path}.")
-
-        except Exception as e:
-            logger.error(f"Could not load visited URLs from {file_path}: {e}")
+    try:
+        # Okuma için newline="" ekle
+        with open(file_path, "r", encoding="utf-8", newline="") as f:
+            try:
+                fcntl.flock(f, fcntl.LOCK_SH)
+                # Kilit altındayken boyutu kontrol et
+                if os.path.getsize(file_path) > 0:
+                    reader = csv.reader(f)
+                    visited = {row[0] for row in reader if row}
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)
+        logger.info(f"Loaded {len(visited)} visited URLs from {file_path}.")
+    except Exception as e:
+        logger.error(f"Could not load visited URLs from {file_path}: {e}")
 
     return visited
 
 
 def save_visited_urls(urls_set, logger):
     """
-    Saves a set of visited URLs to a CSV file using an exclusive lock.
-    An exclusive lock prevents any other process from reading or writing.
+    Asıl dosya üzerinde EXCLUSIVE kilit alır,
+    veriyi önce tmp dosyasına yazar, fsync eder ve os.replace ile atomik olarak değiştirir.
+    Böylece 0 byte veya yarım yazım görülmez.
     """
-
     file_path = config.VISITED_URLS_FILEPATH
+    tmp_path = f"{file_path}.tmp"
 
+    # Asıl dosya üzerinde kilit tutmak için dosyayı truncate ETMEDEN aç
+    # 'a+' truncate etmez ve dosya yoksa oluşturur.
+    # (Sırf kilit tutmak için açıyoruz.)
     try:
-        with open(file_path, "w", encoding="utf-8", newline="") as f:
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, "a+", encoding="utf-8") as lockf:
             try:
-                # ÖZEL KİLİT AL (Başka hiçbir işlem bu dosyaya erişemez)
-                fcntl.flock(f, fcntl.LOCK_EX)
+                fcntl.flock(lockf, fcntl.LOCK_EX)
 
-                writer = csv.writer(f)
-                for url in urls_set:
-                    writer.writerow([url])
+                # 1) Geçici dosyaya komple yaz
+                with open(tmp_path, "w", encoding="utf-8", newline="") as tf:
+                    writer = csv.writer(tf)
+                    # İstersen deterministik olsun diye sıralayabilirsin:
+                    # for url in sorted(urls_set):
+                    for url in urls_set:
+                        writer.writerow([url])
+                    tf.flush()
+                    os.fsync(tf.fileno())
 
-            finally:
-                # KİLİDİ BIRAK
-                fcntl.flock(f, fcntl.LOCK_UN)
+                # 2) Atomik olarak değiştir
+                os.replace(tmp_path, file_path)
+
                 logger.info(f"{len(urls_set)} visited URLs saved to {file_path}.")
+            finally:
+                fcntl.flock(lockf, fcntl.LOCK_UN)
 
     except Exception as e:
+        # Bir hata olursa geçici dosyayı silmeyi dene (varsa)
+        try:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except Exception:
+            pass
         logger.error(f"Could not save visited URLs to {file_path}: {e}")
-
 
 def fetch_keyword():
     keyword_file_path = config.KEYWORD_FILEPATH
