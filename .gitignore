@@ -4,3 +4,5 @@
 /cosmos_crawler_venv/
 /cosmos_crawler/CORPUS
 /cosmos_crawler/CORPUS/*
+__pycache__/
+*.pyc
