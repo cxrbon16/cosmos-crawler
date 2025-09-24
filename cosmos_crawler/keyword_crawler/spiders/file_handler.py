@@ -14,9 +14,7 @@ def save_corpus(url_list, corpus_list, keyword, logger):
     """
 
     directory = config.CORPUS_DIRECTORY
-    os.makedirs(directory, exist_ok=True)
-
-    file_index = 1
+    os.makedirs(directory, exist_ok=True) file_index = 1
     filename = os.path.join(directory, f"corpus_{file_index}.csv")
 
     while os.path.exists(filename) and os.path.getsize(filename) >= 100 * 1024 * 1024:  ## 1 mb boyutunda dosyalar.
@@ -84,7 +82,10 @@ def save_visited_urls(urls_set, logger):
     # 'a+' truncate etmez ve dosya yoksa oluşturur.
     # (Sırf kilit tutmak için açıyoruz.)
     try:
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        dir_path = os.path.dirname(file_path)
+        if dir_path:  # sadece klasör varsa oluştur
+            os.makedirs(dir_path, exist_ok=True)
+
         with open(file_path, "a+", encoding="utf-8") as lockf:
             try:
                 fcntl.flock(lockf, fcntl.LOCK_EX)
