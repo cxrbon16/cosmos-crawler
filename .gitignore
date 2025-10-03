@@ -6,3 +6,4 @@
 /cosmos_crawler/CORPUS/*
 __pycache__/
 *.pyc
+.idea
