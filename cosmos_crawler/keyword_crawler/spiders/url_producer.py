@@ -6,13 +6,7 @@ import config
 
 def push_keyword_and_urls(r, keyword, urls):
 
-    if len(urls) < config.LEN_START_URLS:
-        print(f"[X] {keyword}: {len(urls)} adet URL bulundu. 5 URL gereklidir.")
-        return False
-
-    if len(urls) > config.LEN_START_URLS:
-        urls = urls[:config.LEN_START_URLS]
-
+    print(f"[I] {keyword}: {len(urls)} adet URL bulundu. {config.LEN_START_URLS} URL gereklidir.")
     pipe = r.pipeline()
 
     pipe.lpush("keyword_crawler:keywords", keyword)

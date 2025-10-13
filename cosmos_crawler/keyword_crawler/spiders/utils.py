@@ -9,7 +9,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common import TimeoutException
-
 import tldextract
 import base64
 import re
@@ -75,7 +74,7 @@ def bing_search_urls(keyword):
 
     # Bing URL: TR dili, TR pazarı, güvenli arama, Türkçe filtre
     url = (
-        f"https://www.bing.com/search?q={keyword}+&form=QBLH&sp=-1&ghc=1&lq=0&pq=selam+&sc=12-6&qs=n&sk=&cvid=96BEB3ECC0FC4E8DAB8214F58F63AF6C"
+        f"https://www.bing.com/search?q={keyword}&cc=tr"
     )
     print(url)
     driver.get(url)
