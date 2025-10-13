@@ -17,6 +17,8 @@ import config
 from urllib.parse import urlparse, parse_qs
 from selenium.webdriver.common.by import By
 import time
+
+
 blacklisted_extensions = config.BLACKLISTED_EXTENSIONS
 
 def is_blacklisted_url(url, response=None):
@@ -63,19 +65,18 @@ def bing_search_urls(keyword):
     ### options
     options = uc.ChromeOptions()
     if config.HEADLESS:
-        options.add_argument('--headless=new')
+        options.add_argument('--headless=true')
     options.add_argument("--lang=tr-TR,tr;q=0.9,en;q=0.8")
     ###
 
     driver = uc.Chrome(options=options)
 
     # çok genel sorgulara otomatik site:tr ekle
-    query = "'" + keyword + "'"
-
+    query = keyword
     # Bing URL: TR dili, TR pazarı, güvenli arama, Türkçe filtre
-    url = (
-        f"https://www.bing.com/search?q={keyword}&cc=tr"
-    )
+
+
+    url = 'https://www.bing.com/search?q={}&search=&form=QBLH'.format(query)
     print(url)
     driver.get(url)
     time.sleep(3)
