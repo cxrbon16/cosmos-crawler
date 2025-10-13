@@ -1,7 +1,7 @@
 import redis
 import time
-import utils  # Bing search fonksiyonun burada
-import file_handler  # Keyword çekmek için burada olduğunu varsayıyorum
+import utils  
+import file_handler  
 import config
 
 def push_keyword_and_urls(r, keyword, urls):
