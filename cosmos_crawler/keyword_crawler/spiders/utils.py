@@ -17,7 +17,8 @@ import config
 from urllib.parse import urlparse, parse_qs
 from selenium.webdriver.common.by import By
 import time
-
+import requests
+from bs4 import BeautifulSoup
 
 blacklisted_extensions = config.BLACKLISTED_EXTENSIONS
 
@@ -135,3 +136,58 @@ def bing_search_urls(keyword):
     print(links)
     driver.quit()
     return links
+
+def request_search_urls(keyword):
+    print(f"Request")
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36",
+        "Accept-Language": "tr-TR,tr;q=0.9",
+        "Referer": "https://www.bing.com/"
+    }
+
+    query = keyword
+    url = f"https://www.bing.com/search?q={query}&search=Submit+Query&form=QBLH&rdr=1&rdrig=01C9B2A878CF446E9A824FA0EDB1D7A3"
+    print(f"Requesting URL: {url}")
+
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+
+    except requests.RequestException as e:
+        print(f"[!] HTTP isteği başarısız: {e}")
+        return []
+
+    soup = BeautifulSoup(response.text, 'html.parser')
+    links = []
+    spam_domains = [
+        "livejasmin", "camgirl", "porn", "xvideos", "xnxx",
+        "onlyfans", "zhihu.com"
+    ]
+
+    elements = soup.select("li.b_algo h2 a")
+    for elem in elements:
+        url = elem.get('href')
+        if not url:
+            continue
+
+        x = decode_bing_redirect(url)
+
+        if not is_blacklisted_url(x) and not any(sd in x.lower() for sd in spam_domains):
+            links.append(x)
+
+    print(links)
+    return links
+
+
+def search_for_url(keyword, way="requests"):
+    try:
+        if way == "uc":
+            return bing_search_urls(keyword)
+        if way == "requests":
+            return request_search_urls(keyword)
+        else:
+            print(f"[!] Desteklenmeyen arama şekli: {way}")
+            return []
+    except Exception as e:
+        print(f"[!] Hata: {e}")
+        return []
