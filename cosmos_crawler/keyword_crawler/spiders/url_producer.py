@@ -28,7 +28,7 @@ def run():
             continue
 
         print(f"[🔍] Keyword: {keyword}")
-        urls = utils.bing_search_urls(keyword)
+        urls = utils.search_for_url(keyword, way=config.WAY_OF_GETTING_URLS)
 
         push_keyword_and_urls(r, keyword, urls)
 

@@ -13,3 +13,4 @@ MAX_DEPTH = 3
 
 HEADLESS = False
 LOG_FILEPATH = "keyword_crawler.log"
+WAY_OF_GETTING_URLS = "requests"  # "requests" veya "uc" (undetected-chromedriver) ("selenium" eklenecek.)

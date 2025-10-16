@@ -15,7 +15,6 @@ def save_corpus(url_list, corpus_list, keyword, logger):
 
     directory = config.CORPUS_DIRECTORY
     os.makedirs(directory, exist_ok=True)
-
     file_index = 1
     filename = os.path.join(directory, f"corpus_{file_index}.csv")
 
