@@ -60,26 +60,62 @@ def decode_bing_redirect(url):
     return url
 
 
+def make_driver(use_tor_proxy=False):
+    options = uc.ChromeOptions()
+    # Headful çalıştır (daha az tespit edilir)
+    # options.headless = True  # sakın headless açmayın
+
+    # Dil / pencere / otomasyon bayrakları
+    options.add_argument("--lang=tr-TR")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("--start-maximized")
+    options.add_argument("--no-first-run")
+    options.add_argument("--no-service-autorun")
+    options.add_argument("--password-store=basic")
+
+    # İsteğe bağlı: Tor proxy (lokalde tor çalıştırın)
+    if use_tor_proxy:
+        options.add_argument("--proxy-server=socks5://127.0.0.1:9050")
+
+    driver = uc.Chrome(options=options, headless=config.HEADLESS)
+
+    # navigator.webdriver = undefined
+    driver.execute_cdp_cmd(
+        "Page.addScriptToEvaluateOnNewDocument",
+        {"source": """
+            Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+            window.navigator.chrome = { runtime: {} };
+            Object.defineProperty(navigator, 'languages', {get: () => ['tr-TR','tr']});
+            Object.defineProperty(navigator, 'platform', {get: () => 'Win32'});
+        """}
+    )
+
+    # Extra HTTP headers (Accept-Language)
+    driver.execute_cdp_cmd("Network.setExtraHTTPHeaders", {
+        "headers": {
+            "Accept-Language": "tr-TR,tr;q=0.9",
+            "Referer": "https://www.bing.com/"
+        }
+    })
+    # Çerezlerle dili sabitle
+    return driver
+
+
 def bing_search_urls(keyword):
     print(f"keyword: {keyword}")
-    ### options
-    options = uc.ChromeOptions()
-    if config.HEADLESS:
-        options.add_argument('--headless=true')
-    options.add_argument("--lang=tr-TR,tr;q=0.9,en;q=0.8")
-    ###
 
-    driver = uc.Chrome(options=options)
-
+    driver = make_driver()
     # çok genel sorgulara otomatik site:tr ekle
     query = keyword
     # Bing URL: TR dili, TR pazarı, güvenli arama, Türkçe filtre
 
-
-    url = 'https://www.bing.com/search?q={}&search=&form=QBLH'.format(query)
+    driver.execute_cdp_cmd("Network.setExtraHTTPHeaders", {
+        "headers": {"Accept-Language": "tr-TR,tr;q=0.9"}
+    })
+    url = f"https://www.bing.com/search?q={query}&search=Submit+Query&form=QBLH&rdr=1&rdrig=01C9B2A878CF446E9A824FA0EDB1D7A3" 
     print(url)
     driver.get(url)
-    time.sleep(3)
+    time.sleep(6)
 
     links = []
     elements = driver.find_elements(By.CSS_SELECTOR, "li.b_algo h2 a")
