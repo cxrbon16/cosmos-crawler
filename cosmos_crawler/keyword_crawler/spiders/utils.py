@@ -165,6 +165,7 @@ def request_search_urls(keyword):
     ]
 
     elements = soup.select("li.b_algo h2 a")
+    print(f"""Found {len(elements)} elements""")
     for elem in elements:
         url = elem.get('href')
         if not url:
