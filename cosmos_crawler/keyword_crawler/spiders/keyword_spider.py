@@ -25,7 +25,6 @@ class KeywordCrawlerSpider(scrapy.Spider):
     len_start_urls = config.LEN_START_URLS
 
     curr_w_keyword = 0
-    visited_urls = set()
 
     corpus = []  # Metinlerin tutulduğu liste
     url_list = []  # URL'lerin tutulduğu liste
@@ -47,11 +46,8 @@ class KeywordCrawlerSpider(scrapy.Spider):
 
     def __init__(self, keyword=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.visited_urls = file_handler.load_visited_urls(self.logger)
-
     def start_requests(self):
         self.logger.info("gezilmis urller cekiliyor...")
-        self.visited_urls = file_handler.load_visited_urls(self.logger)
 
         self.logger.info("Spider başlatıldı, ilk keyword alınıyor...")
         yield from self._handle_keyword_refresh()
@@ -86,7 +82,10 @@ class KeywordCrawlerSpider(scrapy.Spider):
 
 
         try:
-            self.visited_urls.add(response.url)
+            #TODO: Gonna be changed to redis set.
+            # self.visited_urls.add(response.url)
+            self.redis.sadd("keyword_crawler:visited_urls", response.url)
+
             html = response.text
             text = self.extract_text(html)
         except Exception as e:
@@ -107,7 +106,6 @@ class KeywordCrawlerSpider(scrapy.Spider):
         self.curr_charactersnumber += sum(len(p) for p in text)
         self.url_list.extend([response.url] * len(text))
         self.corpus.extend(text)
-
         self.logger.info(f"KEYWORD: {response.meta['keyword']}")
         self.logger.info(f"Scraped Page {response.url}")
         self.logger.info(f"Total Pages Scraped: {self.curr_pagenumber}")
@@ -121,7 +119,10 @@ class KeywordCrawlerSpider(scrapy.Spider):
             curr_in_p = self.crawler.engine._slot.scheduler.__len__() + len(self.crawler.engine._slot.inprogress)
             current_depth = response.meta.get('depth', 0)
 
-            is_link_visited = link in self.visited_urls
+            # Changed to redis set.
+            is_link_visited = self.redis.sismember("keyword_crawler:visited_urls", link)
+            if is_link_visited:
+                self.logger.warning(f"\033[93mAlready visited: {link}\033[0m")  # yellow
             is_url_blacklisted = utils.is_blacklisted_url(link)
             is_out_of_bound = curr_in_p > self.refresh_step - self.curr_w_keyword + 1
             is_max_depth_exceeded = current_depth > self.max_depth
@@ -173,7 +174,12 @@ class KeywordCrawlerSpider(scrapy.Spider):
             link = urljoin(base_url, a_tag['href'])
             if link.startswith("javascript") or link.strip() == "":
                 continue
-            links.add(link)
+            is_link_visited = self.redis.sismember("keyword_crawler:visited_urls", link)
+            if is_link_visited:
+                # self.logger.warning(f"\033[93mAlready visited: {link}\033[0m")  # yellow
+                continue
+            else:
+                links.add(link)
 
         return links
 
@@ -182,5 +188,4 @@ class KeywordCrawlerSpider(scrapy.Spider):
         Spider kapatıldığında corpus'u kaydet.
         """
         self.logger.info("CLOSING. SAVING.")
-        file_handler.save_visited_urls(urls_set = self.visited_urls, logger=self.logger)
         file_handler.save_corpus(url_list = self.url_list, corpus_list = self.corpus, keyword=self.curr_keyword, logger=self.logger)
